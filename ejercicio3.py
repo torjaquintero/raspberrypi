@@ -8,95 +8,52 @@
 # En el modo manual debe permitir ponerlo intermitente en rojo o intermitente en amarillo.
 # ==============================================================================================
 
-import tkinter as tk
 import RPi.GPIO as GPIO
 import time
-from threading import Thread
 
-class SemaforoApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Semaforo Control")
-        self.root.geometry("300x400")
+# Configuración de pines
+pin_rojo = 17
+pin_amarillo = 27
+pin_verde = 22
 
-        self.estado = "Automatico"
-        self.create_widgets()
-        self.setup_gpio()
-        self.update_semaphor()
+# Configuración de la librería GPIO
+GPIO.setmode(GPIO.BCM)
 
-    def create_widgets(self):
-        self.label_estado = tk.Label(self.root, text="Modo: Automatico")
-        self.label_estado.pack(pady=10)
+# Configuracion de puertos GPIO
+GPIO.setup(pin_rojo, GPIO.OUT)
+GPIO.setup(pin_amarillo, GPIO.OUT)
+GPIO.setup(pin_verde, GPIO.OUT)
 
-        self.canvas = tk.Canvas(self.root, width=100, height=250, bg="white")
-        self.canvas.pack()
+def encender_led(pin):
+    GPIO.output(pin, GPIO.HIGH)
 
-        self.btn_cambiar_modo = tk.Button(self.root, text="Cambiar Modo", command=self.cambiar_modo)
-        self.btn_cambiar_modo.pack(pady=10)
+def apagar_led(pin):
+    GPIO.output(pin, GPIO.LOW)
 
-    def setup_gpio(self):
-        GPIO.setmode(GPIO.BCM)
-        self.rojo_pin = 17  # Puedes cambiar el número del pin según tu conexión
-        self.amarillo_pin = 18
-        self.verde_pin = 27
-        GPIO.setup(self.rojo_pin, GPIO.OUT)
-        GPIO.setup(self.amarillo_pin, GPIO.OUT)
-        GPIO.setup(self.verde_pin, GPIO.OUT)
+def semaforo():
+    try:
+        while True:
+            # Fase de luz verde
+            encender_led(pin_verde)
+            time.sleep(5)
 
-    def cambiar_modo(self):
-        if self.estado == "Automatico":
-            self.estado = "Manual"
-            self.label_estado.config(text="Modo: Manual")
-        else:
-            self.estado = "Automatico"
-            self.label_estado.config(text="Modo: Automatico")
-            self.update_semaphor()
+            # Fase de luz amarilla
+            apagar_led(pin_verde)
+            encender_led(pin_amarillo)
+            time.sleep(2)
 
-    def update_semaphor(self):
-        if self.estado == "Automatico":
-            self.auto_thread = Thread(target=self.secuencia_automatica)
-            self.auto_thread.start()
-        elif self.estado == "Manual":
-            self.encender_rojo()
+            # Fase de luz roja
+            apagar_led(pin_amarillo)
+            encender_led(pin_rojo)
+            time.sleep(5)
 
-    def secuencia_automatica(self):
-        while self.estado == "Automatico":
-            self.encender_rojo()
-            time.sleep(3)
-            self.apagar_todos()
-            time.sleep(1)
-            self.encender_verde()
-            time.sleep(4)
-            self.apagar_todos()
-            time.sleep(1)
-            self.encender_amarillo()
-            time.sleep(1)
-            self.apagar_todos()
+            # Reiniciar ciclo
+            apagar_led(pin_rojo)
 
-    def encender_rojo(self):
-        self.apagar_todos()
-        GPIO.output(self.rojo_pin, GPIO.HIGH)
-        self.canvas.create_oval(40, 40, 160, 160, fill="red")
-
-    def encender_amarillo(self):
-        self.apagar_todos()
-        GPIO.output(self.amarillo_pin, GPIO.HIGH)
-        self.canvas.create_oval(40, 40, 160, 160, fill="yellow")
-
-    def encender_verde(self):
-        self.apagar_todos()
-        GPIO.output(self.verde_pin, GPIO.HIGH)
-        self.canvas.create_oval(40, 40, 160, 160, fill="green")
-
-    def apagar_todos(self):
-        GPIO.output(self.rojo_pin, GPIO.LOW)
-        GPIO.output(self.amarillo_pin, GPIO.LOW)
-        GPIO.output(self.verde_pin, GPIO.LOW)
-        self.canvas.create_oval(40, 40, 160, 160, fill="white")
-
-    def run(self):
-        self.root.mainloop()
+    except KeyboardInterrupt:
+        # Limpiar pines GPIO al interrumpir con Ctrl+C
+        GPIO.cleanup()
 
 if __name__ == "__main__":
-    app = SemaforoApp(tk.Tk())
-    app.run()
+    semaforo()
+list
